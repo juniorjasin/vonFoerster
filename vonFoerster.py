@@ -109,23 +109,30 @@ def vonFoerster(dt, t, tau, nt, tmps, hmrs, pnu, fhnu, pdes, fhrates, pinput):
     
 #    evalua con humedad y sin humedad
     if hmrsnul != 0:
+        print "IFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
        # calcula las tasas de desarrollo para temperaturas y humedades relativas dadas 
-       for i in range(nt):
-            rates[i] = feval(fhrates, tmps[i], hmrs[i], pdes);   
+        for i in range(nt):
+            rates[i] = feval(fhrates, tmps[i], hmrs[i], pdes);       
     else:
-        # SI ENTRA ACA NO FUNCIONA PORQUE BriereI recibe 2 parametros nada mas !!
-
+        # 
+        print "ELSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
        # calcula las tasas de desarrollo  para temperaturas dadas
         for i in range(nt):
             rates[i] = feval(fhrates, tmps[i], pdes); 
-    
+
+    print "rates:\n"
+    print rates
     # recibe: 1ro un matriz de nt filas y una columna, 2do. 
-    print "///////////////////////////////////////n"
+    print "ones * dt"
     print dt * np.ones((nt,1)) 
     print [cumtrapz(rates)]
     RT    = np.dot(dt * np.ones((nt,1)), [cumtrapz(rates)]);  # create a matrix which is the cumulative development
+    print "///////////////////////////////////////n"
+    print type(RT)
     print RT
-    RTau  = np.transpose(RT);                                    # create transpose of cumulative matrix for use in kernel
+    RTau  = np.transpose(RT); 
+    print "transpose"
+    print RTau                                   # create transpose of cumulative matrix for use in kernel
     vexp  = np.vectorize(exp);   
     vsqrt = np.vectorize(sqrt);    
     

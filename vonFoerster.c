@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h> // porque usa malloc
 
 // flags compilacion: -lm (porque usamos math.h)
 
@@ -10,16 +11,17 @@
 
 void linspace (double a, double b, int c,double *d);
 void meshgrid(double *x, double *y, double X[MAX_FILAS_COLUMNAS][MAX_FILAS_COLUMNAS], double Y[MAX_FILAS_COLUMNAS][MAX_FILAS_COLUMNAS], int nt);
-void ones(double X[][1], int filas);
+void ones(double X[][1], int filas); // creo que ones deberia recibir las columnas para que quede mas generico y X ser [][] o ** o tipo void
 void matriz_por_escalar(double k, double m[][1], int filas);
 void TempSim(double *t, int T0, int T1, int T365, int nt, double *tmps, double *tmeds);
 double sum(double *m, int size);
 
 // jr
-float brierei(float tmpsi, float p[]);
-double dot(double **v, double *u, int n);
+float brierei(double tmps, double *p);
+double ** dot(double **v, double *u, int n);
 double * cumtrapz(double *hs, int sz);
 double ** transposef(double **m, int r, int c);
+double ** ones2(int filas, int columnas);
 
 void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double *hmrs, double *pnu, double *pdes, double *pinput) {
     float tol = 0.0001;
@@ -29,8 +31,111 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 
     double Pttau[nt][nt];
     double wts[nt][nt];
-    double rates[nt][nt];
+    double rates[nt]; // esto es un array, estaba como rates[][]
     double hmrsnul = sum(hmrs,nt);    
+
+    if( hmrsnul == 0){
+        for(int i = 0; i < nt; i++)
+            rates[i] = brierei(tmps[i], pdes);
+    }
+
+    /* verifique los ultimos 9 y conciden.
+    mis rates:
+    rates:0.004572 - rates:0.000000 - rates:0.004204 - rates:0.076955 - rates:0.003840 
+    rates:0.000000 - rates:0.003481 - rates:0.075761 - rates:0.003126
+    rates del profe:
+    4.57214372e-03   0.00000000e+00   4.20356871e-03   7.69550317e-02   3.83976782e-03
+    0.00000000e+00   3.48073087e-03   7.57607866e-02   3.12644666e-03
+    */
+
+    /* solo para printear rates
+    for(int i = 0; i < nt; i++) {
+        if(i%5 == 0){
+            printf("rates:%f \n",rates[i]);
+        }else
+            printf("rates:%f - ",rates[i]);
+    }
+    //*/
+
+    printf( "cumtrapz /n");
+    double * d = cumtrapz(rates, nt);
+
+    /* verifique los ultimos 10 y coinciden (solo en python tienen mas precision pero creo que es porque printf redondea el numero)
+    mis ultimos cumtrapz
+    26.709788,    26.751158,   26.753444,    26.755546,    26.796126,    26.836523,   26.838443,    26.840183,    26.879804,    26.919248
+
+    cumptraz del profe:
+    26.70978843,  26.75115837, 26.75344444,  26.75554622,  26.79612552,  26.83652292, 26.83844281,  26.84018317,  26.87980393,  26.91924755
+
+    */
+
+    // para printear cumtrapz
+    // for(int i = 0; i < nt; i++) printf("cumtrapz:%f\n", d[i]);
+
+
+
+    double **X;
+    printf( "ones2 /n");
+    double ** x = ones2(nt, 1);
+    for(int i = 0; i < nt; i++) printf(":%f\n", x[i][0]);
+    for(int i = 0; i < nt; i++) x[i][0] = x[i][0] * dt;
+    
+    //printf("ones * dt \n");
+    //for(int i = 0; i < nt; i++){
+        //printf(":%f\n", x[i][0]); // muestra lo mismo que en python
+    //}
+
+    printf( "dot \n");
+    double ** res = dot(x, d, nt);
+
+    /* verifique 1ros y ultimos 3 y coinciden.
+      mis dots:
+      0.000000   0.019033    0.057958 , ...  6.710046 6.719951 6.729812
+      dots del profe:
+     0.          0.01903326  0.05795842...   6.71004579  6.71995098
+
+     // para printear los datos de la funcion dots()
+     for (int i = 0; i < nt; i++){
+        for (int j = 0; j < nt; j++){
+            printf( "%f", res[i][j] );
+        }
+        printf("\n");
+    }    
+    */
+
+    double ** RTau = transposef(res, nt, nt);
+
+    /* test transposef
+    mis resultados:
+    0.0000000, 0.0000000 ...
+    0.019033,  0.019033, ...
+    0.057958,  0.0579580, ...
+    ...
+    6.710046, 6.710046 ...
+    6.719951, 6.719951 ...
+    6.729812, 6.729812 ...
+
+    RTau del profe
+[[ 0.          0.          0.         ...,  0.          0.          0.        ]
+ [ 0.01903326  0.01903326  0.01903326 ...,  0.01903326  0.01903326 0.01903326]
+ [ 0.05795842  0.05795842  0.05795842 ...,  0.05795842  0.05795842 0.05795842]
+ ..., 
+ [ 6.71004579  6.71004579  6.71004579 ...,  6.71004579  6.71004579 6.71004579]
+ [ 6.71995098  6.71995098  6.71995098 ...,  6.71995098  6.71995098 6.71995098]
+ [ 6.72981189  6.72981189  6.72981189 ...,  6.72981189  6.72981189 6.72981189]]
+
+    //printear transpose
+    for (int i = 0; i < nt; i++){
+        for (int j = 0; j < nt; j++){
+            printf( "%f", RTau[i][j] );
+        }
+        printf("\n");
+    }    
+
+    */
+
+    
+
 }
 
 
@@ -78,7 +183,6 @@ void main(){
     double codfig = 8;
     printf("\n\n");
     vonFoerster(dt,t,tau,nt,tmps,hmrs,pnu,pdes,pinput);
-
 
     
 }
@@ -136,6 +240,22 @@ void ones(double X[][1], int filas){
     }
 }
 
+double ** ones2( int filas, int columnas){
+    
+    double ** res = malloc(filas * sizeof(double *));
+	for(int i = 0; i < filas; i++)
+		res[i] = malloc(columnas * sizeof(double));
+
+    for (int i = 0; i < filas; i++){
+        for (int j = 0; j < columnas; j++){
+            res[i][j] = 1;
+            //printf(" %f ,", res[i][j]);
+        }
+        //printf("\n");
+    }
+    return res;
+}
+
 
 void matriz_por_escalar(double k, double m[][1], int filas){
      for(int i=0; i<filas;i++){ // fila i
@@ -189,7 +309,7 @@ double sum(double *m, int size){
 }
 
 // jr
-float brierei(float tmpsi, float p[]){
+float brierei(double tmpsi, double *p){
     float r = 0.0;
     if( tmpsi <= p[1] )
         r = 0.0;
@@ -203,17 +323,23 @@ float brierei(float tmpsi, float p[]){
 
 /* pongo un double como matriz, porque lo que viene como parametro es una matriz de
 n filas y 1 sola columna.
-
-nota: habria que saber de antemano el valor
 */
-double dot(double **v, double *u, int n)
+double ** dot(double **v, double *u, int n)
 {
-    double result = 0.0;
+    double **res = malloc(n * sizeof(double *));
+	for(int i = 0; i < n; i++)
+		res[i] = malloc(n * sizeof(double));
+
     for (int i = 0; i < n; i++){
-        result += v[i][0]*u[i];
-        printf("res:%f", result);
+        for (int j = 0; j < n; j++){
+            res[j][i] = v[i][0]*u[i];
+            //printf(" %f ,", res[i][j]);
+        }
+        //printf("\n");
+        //if(i > 5) break;
     }
-    return result;
+
+    return res;
 }
 
 

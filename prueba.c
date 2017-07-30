@@ -33,15 +33,7 @@ n filas y 1 sola columna.
 
 nota: habria que saber de antemano el valor
 */
-double dot(double **v, double *u, int n)
-{
-    double result = 0.0;
-    for (int i = 0; i < n; i++){
-        result += v[i][0]*u[i];
-        printf("res:%f", result);
-    }
-    return result;
-}
+
 
 /*
 def cumtrapz(hs): # hs es una lista/vector
@@ -88,6 +80,23 @@ double ** transposef(double **m, int r, int c)
 }
 
 
+double ** dot(double **v, double *u, int n)
+{
+    double **res = malloc(n * sizeof(double *));
+	for(int i = 0; i < n; i++)
+		res[i] = malloc(n * sizeof(double));
+
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < n; j++){
+            res[i][j] = v[i][0]*u[i];
+            //printf(" %f ,", res[i][j]);
+        }
+        //printf("\n");
+    }
+
+    return res;
+}
+
 void main(){ 
 
     /* ------------------------------------------------------------------------------------------ 
@@ -100,13 +109,14 @@ void main(){
     printf("result: %f", r);
     //*/
 
-    /* ------------------------------------------------------------------------------------------
+    //* ------------------------------------------------------------------------------------------
     // test dot    
     int nrows = 5;
     int ncolumns = 1;
 
     // creo array y lo lleno con algun valor
     double *array = malloc(nrows * sizeof(double *));
+    
     for(int i = 0; i < nrows; i++) array[i] = i;
 
     // creo matriz y lo lleno con algun valor
@@ -117,11 +127,19 @@ void main(){
     for(int i = 0; i < nrows; i++) array1[i][0] = i;
 
     for(int i = 0; i < nrows; i++){
-        printf("val:%f /n", array1[i][0]);
+        printf("val:%f \n", array1[i][0]);
     }
 
-    dot(array1,array,5);
-    */
+    printf("\n se llama a dot() \n");
+    dot(array1, array, nrows);
+
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 5; j++){
+         //   printf( "val:%f /n", res[i][j] );
+        }
+    }
+
+    //*/
 
     /*------------------------------------------------------------------------------------------
     // test cumtrapz
@@ -133,6 +151,7 @@ void main(){
     printf("res:%f", *res);
     */
 
+    /* ------------------------------------------------------------------------------------------
     // test transpose
     printf("test transpose");
     int nrows = 5;
@@ -159,6 +178,8 @@ void main(){
         }
         printf("\n");
     }
+
+    */
 
 
 }
