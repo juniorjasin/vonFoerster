@@ -138,14 +138,27 @@ def vonFoerster(dt, t, tau, nt, tmps, hmrs, pnu, fhnu, pdes, fhrates, pinput):
     
     if (pnu[0] == 0) and (pnu[1] == 0):
         nu = pnu[2];
+        print "nuuuuu"
+        print nu
         Pttau  = (T>Tau)*vexp(-(1-(RT-RTau))**2/(4*nu*(abs(T-Tau)+tol)))\
                            /vsqrt(4*pi*nu*(abs(T-Tau)**3+tol));         # extended von foerster kernel
+        print "IF PTTAUUUUUUUUUUUUUUUUUUUUUUUUUU"
+
+        print "-------------------------------------------------------------\n\n abs"
+        print abs(T-Tau)
+        print "\n\n + tol"
+        print (abs(T-Tau)+tol)
+
+        print "FINAL ROUND \n\n\n"
+        print (4*nu*(abs(T-Tau)+tol))
+
     else:
         #con estos valores no entra a calcular la varianza
         nus   = feval(fhnu, tmps, pnu);      # calcula las varianzas para temperatures dadas
         NU    = np.dot(np.ones(nt,1), nus);# crea una matriz de varianzas en funci�n de las temperaturas
         Pttau = (T>Tau)*exp(-(1-(RT-RTau))**2/(4*NU*(abs(T-Tau)+tol))) \
                            /vsqrt(4*pi*NU*(abs(T-Tau)**3+tol));         # extended von foerster kernel
+        print "ELSE PTTAUUUUUUUUUUUUUUUUUUUUUUUUUU"
     
     ints = dt*np.trapz(Pttau,axis=1);    # integrate in columns to normalize
     wts  = (ints>tol)*ints+(ints<=tol);  # calculate a  weighting factor; 

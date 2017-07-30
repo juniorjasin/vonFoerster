@@ -10,7 +10,7 @@
 #define MAX_FILAS_COLUMNAS 400
 
 void linspace (double a, double b, int c,double *d);
-void meshgrid(double *x, double *y, double X[MAX_FILAS_COLUMNAS][MAX_FILAS_COLUMNAS], double Y[MAX_FILAS_COLUMNAS][MAX_FILAS_COLUMNAS], int nt);
+void meshgrid(double *x, double *y, double **X, double **Y, int nt);
 void ones(double X[][1], int filas); // creo que ones deberia recibir las columnas para que quede mas generico y X ser [][] o ** o tipo void
 void matriz_por_escalar(double k, double m[][1], int filas);
 void TempSim(double *t, int T0, int T1, int T365, int nt, double *tmps, double *tmeds);
@@ -23,10 +23,25 @@ double * cumtrapz(double *hs, int sz);
 double ** transposef(double **m, int r, int c);
 double ** ones2(int filas, int columnas);
 
+
+double ** diff(double ** a, double **b, int f, int c); 
+void absMatrix(double **m, int f, int c);
+void sumEscalarToMatrix(double **m, int f, int c, double val);
+void escalarMatrixMultiplication(double **m, int f, int c, double val);
+
 void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double *hmrs, double *pnu, double *pdes, double *pinput) {
     float tol = 0.0001;
-    double T[nt][nt];
-    double Tau[nt][nt];
+    double **T;
+    double **Tau;
+
+    T = malloc(nt * sizeof(double *));
+	for(int i = 0; i < nt; i++)
+		T[i] = malloc(nt * sizeof(double));
+
+    Tau = malloc(nt * sizeof(double *));
+	for(int i = 0; i < nt; i++)
+		Tau[i] = malloc(nt * sizeof(double));
+
     meshgrid(t,tau,T,Tau,nt); 
 
     double Pttau[nt][nt];
@@ -57,7 +72,7 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     }
     //*/
 
-    printf( "cumtrapz /n");
+    printf( "cumtrapz \n");
     double * d = cumtrapz(rates, nt);
 
     /* verifique los ultimos 10 y coinciden (solo en python tienen mas precision pero creo que es porque printf redondea el numero)
@@ -75,9 +90,9 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 
 
     double **X;
-    printf( "ones2 /n");
+    printf( "ones2 \n");
     double ** x = ones2(nt, 1);
-    for(int i = 0; i < nt; i++) printf(":%f\n", x[i][0]);
+    //for(int i = 0; i < nt; i++) printf(":%f\n", x[i][0]);
     for(int i = 0; i < nt; i++) x[i][0] = x[i][0] * dt;
     
     //printf("ones * dt \n");
@@ -86,7 +101,7 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     //}
 
     printf( "dot \n");
-    double ** res = dot(x, d, nt);
+    double ** RT = dot(x, d, nt);
 
     /* verifique 1ros y ultimos 3 y coinciden.
       mis dots:
@@ -103,7 +118,7 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     }    
     */
 
-    double ** RTau = transposef(res, nt, nt);
+    double ** RTau = transposef(RT, nt, nt);
 
     /* test transposef
     mis resultados:
@@ -134,7 +149,28 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 
     */
 
+    // INICIO ------------------------------ (4*nu* (abs(T-Tau)+tol) )) ------------------------------
+
+    double ** TTau = diff(T, Tau, nt, nt);
+    absMatrix(TTau, nt, nt);
+    sumEscalarToMatrix(TTau, nt, nt, tol);
+    double nu = pnu[2];
+    double nu4 = 4 * nu;
+    escalarMatrixMultiplication(TTau, nt, nt, nu4);
     
+    // FIN ------------------------------ (4*nu* (abs(T-Tau)+tol) )) ------------------------------
+
+    /*
+    for (int i = 0; i < nt; i++){
+        for (int j = 0; j < nt; j++){
+            printf( " %f ", TTau[i][j] );
+        }
+        printf("\n");
+    } 
+    */   
+
+    
+
 
 }
 
@@ -207,7 +243,7 @@ Devuelve las coordenadas 2-D de la cuadrícula basadas en las coordenadas conten
 X es una matriz donde cada fila es una copia de x, y Y es una matriz donde cada columna es una copia de y. 
 La cuadrícula representada por las coordenadas X e Y tiene length(y)filas y length(x)columnas.
 */
-void meshgrid(double *x, double *y, double X[MAX_FILAS_COLUMNAS][MAX_FILAS_COLUMNAS], double Y[MAX_FILAS_COLUMNAS][MAX_FILAS_COLUMNAS], int nt){
+void meshgrid(double *x, double *y, double **X, double **Y, int nt){
     for(int i=0; i<nt;i++){ // fila i
         for(int j=0;j<nt;j++){ // columna j
             X[i][j] = x[j]; 
@@ -366,4 +402,47 @@ double ** transposef(double **m, int r, int c)
     
 
     return transpose;
+}
+
+double ** diff(double ** a, double **b, int f, int c){
+    double **arraydiff = malloc(f * sizeof(double *));
+	for(int i = 0; i < f; i++)
+		arraydiff[i] = malloc(c * sizeof(double));
+
+    for (int i = 0; i < f; i++){
+        for (int j = 0; j < c; j++){
+           arraydiff[i][j] = a[i][j] - b[i][j];
+        }
+    }
+
+    return arraydiff;
+}
+
+
+void absMatrix(double **m, int f, int c){
+    for (int i = 0; i < f; i++){
+        for (int j = 0; j < c; j++){
+            if( m[i][j] < 0 ){
+                m[i][j] = m[i][j] * (-1);
+            }
+        }
+    }
+}
+
+
+void sumEscalarToMatrix(double **m, int f, int c, double val){
+    for (int i = 0; i < f; i++){
+        for (int j = 0; j < c; j++){
+            m[i][j] = m[i][j] + val;
+        }
+    }
+}
+
+
+void escalarMatrixMultiplication(double **m, int f, int c, double val){
+    for (int i = 0; i < f; i++){
+        for (int j = 0; j < c; j++){
+            m[i][j] = m[i][j] * val;
+        }
+    }
 }
