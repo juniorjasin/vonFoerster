@@ -9,12 +9,14 @@
 #define PI 3.14159265359
 #define MAX_FILAS_COLUMNAS 400
 
+// andy
 void linspace (double a, double b, int c,double *d);
 void meshgrid(double *x, double *y, double **X, double **Y, int nt);
 void ones(double X[][1], int filas); // creo que ones deberia recibir las columnas para que quede mas generico y X ser [][] o ** o tipo void
 void matriz_por_escalar(double k, double m[][1], int filas);
 void TempSim(double *t, int T0, int T1, int T365, int nt, double *tmps, double *tmeds);
 double sum(double *m, int size);
+void trapz(double **v, double filas, double columnas);
 
 // jr
 float brierei(double tmps, double *p);
@@ -33,6 +35,7 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     float tol = 0.0001;
     double **T;
     double **Tau;
+    double **Pttau;
 
     T = malloc(nt * sizeof(double *));
 	for(int i = 0; i < nt; i++)
@@ -42,9 +45,12 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 	for(int i = 0; i < nt; i++)
 		Tau[i] = malloc(nt * sizeof(double));
 
-    meshgrid(t,tau,T,Tau,nt); 
+    Pttau = malloc(nt * sizeof(double *));
+	for(int i = 0; i < nt; i++)
+		Pttau[i] = malloc(nt * sizeof(double));
 
-    double Pttau[nt][nt];
+    meshgrid(t,tau,T,Tau,nt); 
+    
     double wts[nt][nt];
     double rates[nt]; // esto es un array, estaba como rates[][]
     double hmrsnul = sum(hmrs,nt);    
@@ -119,6 +125,18 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     */
 
     double ** RTau = transposef(RT, nt, nt);
+    if(pnu[0]==0 && pnu[1]==0){
+        double nu = pnu[2];
+
+        // voy a hacer RT-RTau        
+         for (int i = 0; i < nt; i++){
+            for (int j = 0; j < nt; j++){            
+            Pttau[i][j] = (exp(-pow((1-(RT[i][j] - RTau[i][j])),2)/(4*nu*(fabs(T[i][j]-Tau[i][j])+tol))))/sqrt(4*PI*nu*(pow(fabs(T[i][j]-Tau[i][j]),3)+tol));
+            printf( "%e | ",Pttau[i][j]);
+            }            
+            printf("\n\n");            
+        }                
+    }
 
     /* test transposef
     mis resultados:
@@ -160,14 +178,15 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     
     // FIN ------------------------------ (4*nu* (abs(T-Tau)+tol) )) ------------------------------
 
-    /*
+    /*    
     for (int i = 0; i < nt; i++){
         for (int j = 0; j < nt; j++){
             printf( " %f ", TTau[i][j] );
         }
         printf("\n");
     } 
-    */   
+    */
+       
 
     
 
@@ -316,18 +335,22 @@ void TempSim(double *t, int T0, int T1, int T365, int nt, double *tmps, double *
     T365 /=2; // 7 
     for(int i=0; i<nt;i++){
         tmeds[i] = T0+T1*cos(2*PI/365*t[i]);
+        /*
         if(i%5)
             printf("%f - ",tmeds[i]);
         else
             printf("\n%f - ",tmeds[i]);
+            */
     }
     printf("\n\n");      
      for(int i=0; i<nt;i++){
         tmps[i] = tmeds[i] - T365*cos(2*PI*(t[i]-(int)t[i]));
+        /*
         if(i%5)
             printf("%f - ",tmps[i]);
         else
-            printf("\n%f - ",tmps[i]);            
+            printf("\n%f - ",tmps[i]);
+            */
     }        
     printf("\n\n");    
 }
@@ -403,6 +426,78 @@ double ** transposef(double **m, int r, int c)
 
     return transpose;
 }
+
+void trapz(double **v, double filas, double columnas)
+{
+    double mat1[(int)filas][(int)columnas-1];
+	double mat2[(int)filas][(int)columnas-1];	
+
+	for(int i = 0; i<filas;i++){
+		for(int j = 0; j<(columnas-1);j++){
+			mat1[i][j] = v[i][j+1];
+		}
+	}
+
+	for(int i = 0; i<filas;i++){
+		for(int j = 0; j<(columnas-1);j++){
+			mat2[i][j] = v[i][j];
+		}
+	}
+	// ----------------------- PRINT DE LO OBTENIDO -----------------------------
+	for(int i = 0; i<filas;i++){
+		for(int j=0;j<(columnas-1);j++){
+			if(!j%(int)columnas)
+				printf("\n%lf - ",mat1[i][j]);
+			else
+			printf("%lf - ",mat1[i][j]);
+		}
+	}
+	printf("\n");
+	for(int i = 0; i<filas;i++){
+		for(int j=0;j<(columnas-1);j++){
+			if(!j%(int)columnas)
+				printf("\n%lf - ",mat2[i][j]);
+			else
+			printf("%lf - ",mat2[i][j]);
+		}
+	}
+	// ----------------------------------------------------------------------------------
+
+	double mat3[(int)filas][(int)columnas-1];
+	for(int i = 0; i<filas;i++){
+		for(int j=0;j<(columnas-1);j++){
+			mat3[i][j] = (mat1[i][j] + mat2[i][j])/2;
+		}
+	}
+
+	// ----------------------- PRINT DE LO OBTENIDO -----------------------------
+	printf("\n\n");
+	for(int i = 0; i<filas;i++){
+		for(int j=0;j<(columnas-1);j++){
+			if(!j%(int)columnas)
+				printf("\n%lf - ",mat3[i][j]);
+			else
+			printf("%lf - ",mat3[i][j]);
+		}
+	}
+	// ----------------------------------------------------------------------------------
+	printf("\n\n");
+	double ret[(int)filas];	
+	double sum;
+	for(int i = 0; i<filas;i++){
+		sum = 0;
+		for(int j=0;j<(columnas-1);j++){
+			sum += mat3[i][j];
+		}
+		ret[i]=sum;
+	}
+
+	for(int i = 0; i<filas;i++){
+		printf("%lf - ",ret[i]);
+	}
+	printf("\n\n");
+}
+
 
 double ** diff(double ** a, double **b, int f, int c){
     double **arraydiff = malloc(f * sizeof(double *));
