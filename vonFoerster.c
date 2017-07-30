@@ -130,12 +130,27 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 
         // voy a hacer RT-RTau        
          for (int i = 0; i < nt; i++){
-            for (int j = 0; j < nt; j++){            
-            Pttau[i][j] = (exp(-pow((1-(RT[i][j] - RTau[i][j])),2)/(4*nu*(fabs(T[i][j]-Tau[i][j])+tol))))/sqrt(4*PI*nu*(pow(fabs(T[i][j]-Tau[i][j]),3)+tol));
-            printf( "%e | ",Pttau[i][j]);
-            }            
-            printf("\n\n");            
-        }                
+            for (int j = 0; j < nt; j++){
+                if(T[i][j] > Tau[i][j]){    
+                    Pttau[i][j] = (exp(-pow((1-(RT[i][j] - RTau[i][j])),2)/(4*nu*(fabs(T[i][j]-Tau[i][j])+tol))))/sqrt(4*PI*nu*(pow(fabs(T[i][j]-Tau[i][j]),3)+tol));
+                    //printf( "%e | ",Pttau[i][j]);
+                }else
+                {
+                    Pttau[i][j] = 0;
+                    //printf( "%e | ",Pttau[i][j]);
+                }
+            }                        
+            printf("\n\n");
+        }
+
+        /*
+        for (int i = 0; i < 3; i++){
+                for (int j = 0; j < nt; j++){
+                    printf( "%e | ",Pttau[i][j]);
+                }
+                printf("\n\n");
+        }
+        */
     }
 
     /* test transposef
