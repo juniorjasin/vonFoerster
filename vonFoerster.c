@@ -160,7 +160,7 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
         ints[i] = dt * ints[i];
     }
 
-    //*
+    /*
     // ints correcto
     printf("ints \n\n");
     for (int i = 0; i < nt; i++){
@@ -188,40 +188,44 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
         }
     }
 
-
+    /*
     printf("\n\n wts \n");
     for (int i = 0; i < nt; i++){
         printf( " %e ", wts[i] );
         if(i%4 == 0) printf("\n");
     }
     printf("\n\n fin wts \n");
+    */
 
 
     // pout = dt*np.dot(pinput/np.transpose(wts), Pttau);
 
     // np.transpose(wts)
-    double **wtsTrans = malloc(nt * sizeof(double *));
+    double **wtsTrans = malloc(1 * sizeof(double *));
 	for(int i = 0; i < nt; i++)
-		wtsTrans[i] = malloc(1 * sizeof(double));
+		wtsTrans[i] = malloc(nt * sizeof(double));
+    printf("\npase\n");
     
     for(int i = 0; i < nt; i++){
-        wtsTrans[i][0] = wts[i];
+        wtsTrans[0][i] = wts[i];
     }
+    printf("\npase\n");
 
     // pinput/np.transpose(wts)
     for(int i = 0; i < nt; i++){
-        wtsTrans[i][0] = pinput[i] / wtsTrans[i][0];
+        wtsTrans[0][i] = pinput[i] / wtsTrans[0][i];
     }
+    printf("\npase\n");
     // de aca para arriba esta bien
 
     /*
     printf("\n\n wtsTrans \n");
     for (int i = 0; i < nt; i++){
-        printf( " %e ", wtsTrans[i][0] );
+        printf( " %e ", wtsTrans[0][i] );
         if(i%4 == 0) printf("\n");
     }
     printf("\n\n fin wtsTrans \n");
-    */
+    //*/
     
     //np.dot(pinput/np.transpose(wts), Pttau);
 
@@ -230,18 +234,19 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     => resultado deberia ser una matrz de ntxnt pero da otra cosa...
 
     */
-    double ** m = multiplyMatrices(wtsTrans, Pttau, nt, nt, nt, nt);
+    double ** m = multiplyMatrices(wtsTrans, Pttau, 1, nt, nt, nt);
+    printf("\npase\n");
 
     //escalarMatrixMultiplication(m, nt, nt, dt);
-
-    printf("\n\n FINALLL \n");
-    for (int i = 0; i < nt; i++){
+    //*
+    printf("\n\n FINALLL \n\n");
+    for (int i = 0; i < 1; i++){
         for (int j = 0; j < nt; j++){
             printf( "%e  ", m[i][j] );
             if(j%4 == 0) printf("\n");
         }
         //if(i%10 == 0) break;
-    }
+    }//*/
 
     printf("\n\n FINAAL \n");
 
@@ -290,20 +295,20 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 
 double ** multiplyMatrices(double ** firstMatrix, double ** secondMatrix, int rowFirst, int columnFirst, int rowSecond, int columnSecond)
 {
-	printf("matriz:%i", rowFirst);
-
 	// Initializing elements of matrix mult to 0.
-    double **matrix = malloc(rowFirst * sizeof(double *));
+    double **matrix = malloc(1 * sizeof(double *));
 	for(int i = 0; i < columnFirst; i++)
 		matrix[i] = malloc(columnFirst * sizeof(double));
 
+    for(int i = 0; i < columnFirst; i++)	
+        matrix[0][i] = 0;
     
 	// Multiplying matrix firstMatrix and secondMatrix and storing in array mult.
 	for(int i = 0; i < rowFirst; i++)
 	{
-		for(int j = 0; j < rowFirst; j++)
+		for(int j = 0; j < columnSecond; j++)
 		{   
-			for(int k = 0; k < rowFirst; k++)
+			for(int k = 0; k < columnFirst; k++)
 			{
 				matrix[i][j] += firstMatrix[i][k] * secondMatrix[k][j];   
 			}
@@ -563,6 +568,7 @@ double * trapz(double **v, double filas, double columnas)
 			mat2[i][j] = v[i][j];
 		}
 	}
+    /*
 	// ----------------------- PRINT DE LO OBTENIDO -----------------------------
 	for(int i = 0; i<filas;i++){
 		for(int j=0;j<(columnas-1);j++){
@@ -582,14 +588,14 @@ double * trapz(double **v, double filas, double columnas)
 		}
 	}
 	// ----------------------------------------------------------------------------------
-
+*/
 	double mat3[(int)filas][(int)columnas-1];
 	for(int i = 0; i<filas;i++){
 		for(int j=0;j<(columnas-1);j++){
 			mat3[i][j] = (mat1[i][j] + mat2[i][j])/2;
 		}
 	}
-
+/*
 	// ----------------------- PRINT DE LO OBTENIDO -----------------------------
 	printf("\n\n");
 	for(int i = 0; i<filas;i++){
@@ -600,7 +606,7 @@ double * trapz(double **v, double filas, double columnas)
 			printf("%lf - ",mat3[i][j]);
 		}
 	}
-	// ----------------------------------------------------------------------------------
+	// ----------------------------------------------------------------------------------*/
 	printf("\n\n");
 	double ret[(int)filas];	
 	double sum;
@@ -611,11 +617,12 @@ double * trapz(double **v, double filas, double columnas)
 		}
 		ret[i]=sum;
 	}
-
+/*
 	for(int i = 0; i<filas;i++){
 		printf("%lf - ",ret[i]);
 	}
 	printf("\n\n");
+*/
 
     double * result = ret;
 }
