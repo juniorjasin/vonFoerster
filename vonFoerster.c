@@ -234,15 +234,15 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
     => resultado deberia ser una matrz de ntxnt pero da otra cosa...
 
     */
-    double ** m = multiplyMatrices(wtsTrans, Pttau, 1, nt, nt, nt);
+    double ** pout = multiplyMatrices(wtsTrans, Pttau, 1, nt, nt, nt);
     printf("\npase\n");
 
-    //escalarMatrixMultiplication(m, nt, nt, dt);
+    escalarMatrixMultiplication(pout, 1, nt, dt);
     //*
     printf("\n\n FINALLL \n\n");
     for (int i = 0; i < 1; i++){
         for (int j = 0; j < nt; j++){
-            printf( "%e  ", m[i][j] );
+            printf( "%e  ", pout[i][j] );
             if(j%4 == 0) printf("\n");
         }
         //if(i%10 == 0) break;
