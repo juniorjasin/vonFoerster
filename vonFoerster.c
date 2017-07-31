@@ -16,7 +16,7 @@ void ones(double X[][1], int filas); // creo que ones deberia recibir las column
 void matriz_por_escalar(double k, double m[][1], int filas);
 void TempSim(double *t, int T0, int T1, int T365, int nt, double *tmps, double *tmeds);
 double sum(double *m, int size);
-void trapz(double **v, double filas, double columnas);
+double * trapz(double **v, double filas, double columnas);
 
 // jr
 float brierei(double tmps, double *p);
@@ -24,12 +24,12 @@ double ** dot(double **v, double *u, int n);
 double * cumtrapz(double *hs, int sz);
 double ** transposef(double **m, int r, int c);
 double ** ones2(int filas, int columnas);
-
-
 double ** diff(double ** a, double **b, int f, int c); 
 void absMatrix(double **m, int f, int c);
 void sumEscalarToMatrix(double **m, int f, int c, double val);
 void escalarMatrixMultiplication(double **m, int f, int c, double val);
+double ** multiplyMatrices(double ** firstMatrix, double ** secondMatrix, int rowFirst, int columnFirst, int rowSecond, int columnSecond);
+
 
 void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double *hmrs, double *pnu, double *pdes, double *pinput) {
     float tol = 0.0001;
@@ -51,7 +51,6 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 
     meshgrid(t,tau,T,Tau,nt); 
     
-    double wts[nt][nt];
     double rates[nt]; // esto es un array, estaba como rates[][]
     double hmrsnul = sum(hmrs,nt);    
 
@@ -153,6 +152,102 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
         */
     }
 
+
+    //ints = dt*np.trapz(Pttau,axis=1);
+
+    double * ints = trapz(Pttau, nt, nt);
+    for (int i = 0; i < nt; i++){
+        ints[i] = dt * ints[i];
+    }
+
+    //*
+    // ints correcto
+    printf("ints \n\n");
+    for (int i = 0; i < nt; i++){
+        printf( " %e ",ints[i]);
+        if(i%4 == 0) printf("\n");
+    }
+    //*/
+
+
+    // wts  = (ints>tol)*ints +(ints<=tol);
+    double * wts = malloc(nt * sizeof(double *));
+
+    // esta bien la primera parte con esto (ints>tol)*ints
+    for (int i = 0; i < nt; i++){
+        if( ints[i] > tol ){
+            wts[i] = ints[i];
+        }else{
+            wts[i] = 0;
+        }
+    }
+
+    for (int i = 0; i < nt; i++){
+        if( wts[i] <= tol ){
+            wts[i] = 1;
+        }
+    }
+
+
+    printf("\n\n wts \n");
+    for (int i = 0; i < nt; i++){
+        printf( " %e ", wts[i] );
+        if(i%4 == 0) printf("\n");
+    }
+    printf("\n\n fin wts \n");
+
+
+    // pout = dt*np.dot(pinput/np.transpose(wts), Pttau);
+
+    // np.transpose(wts)
+    double **wtsTrans = malloc(nt * sizeof(double *));
+	for(int i = 0; i < nt; i++)
+		wtsTrans[i] = malloc(1 * sizeof(double));
+    
+    for(int i = 0; i < nt; i++){
+        wtsTrans[i][0] = wts[i];
+    }
+
+    // pinput/np.transpose(wts)
+    for(int i = 0; i < nt; i++){
+        wtsTrans[i][0] = pinput[i] / wtsTrans[i][0];
+    }
+    // de aca para arriba esta bien
+
+    /*
+    printf("\n\n wtsTrans \n");
+    for (int i = 0; i < nt; i++){
+        printf( " %e ", wtsTrans[i][0] );
+        if(i%4 == 0) printf("\n");
+    }
+    printf("\n\n fin wtsTrans \n");
+    */
+    
+    //np.dot(pinput/np.transpose(wts), Pttau);
+
+    /*
+    wtsTrans es una matriz de ntxnt, Pttau tambien.
+    => resultado deberia ser una matrz de ntxnt pero da otra cosa...
+
+    */
+    double ** m = multiplyMatrices(wtsTrans, Pttau, nt, nt, nt, nt);
+
+    //escalarMatrixMultiplication(m, nt, nt, dt);
+
+    printf("\n\n FINALLL \n");
+    for (int i = 0; i < nt; i++){
+        for (int j = 0; j < nt; j++){
+            printf( "%e  ", m[i][j] );
+            if(j%4 == 0) printf("\n");
+        }
+        //if(i%10 == 0) break;
+    }
+
+    printf("\n\n FINAAL \n");
+
+
+    
+
     /* test transposef
     mis resultados:
     0.0000000, 0.0000000 ...
@@ -182,17 +277,6 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
 
     */
 
-    // INICIO ------------------------------ (4*nu* (abs(T-Tau)+tol) )) ------------------------------
-
-    double ** TTau = diff(T, Tau, nt, nt);
-    absMatrix(TTau, nt, nt);
-    sumEscalarToMatrix(TTau, nt, nt, tol);
-    double nu = pnu[2];
-    double nu4 = 4 * nu;
-    escalarMatrixMultiplication(TTau, nt, nt, nu4);
-    
-    // FIN ------------------------------ (4*nu* (abs(T-Tau)+tol) )) ------------------------------
-
     /*    
     for (int i = 0; i < nt; i++){
         for (int j = 0; j < nt; j++){
@@ -201,11 +285,32 @@ void vonFoerster(double dt, double *t, double *tau, int nt, double *tmps, double
         printf("\n");
     } 
     */
-       
+}
+
+
+double ** multiplyMatrices(double ** firstMatrix, double ** secondMatrix, int rowFirst, int columnFirst, int rowSecond, int columnSecond)
+{
+	printf("matriz:%i", rowFirst);
+
+	// Initializing elements of matrix mult to 0.
+    double **matrix = malloc(rowFirst * sizeof(double *));
+	for(int i = 0; i < columnFirst; i++)
+		matrix[i] = malloc(columnFirst * sizeof(double));
 
     
+	// Multiplying matrix firstMatrix and secondMatrix and storing in array mult.
+	for(int i = 0; i < rowFirst; i++)
+	{
+		for(int j = 0; j < rowFirst; j++)
+		{   
+			for(int k = 0; k < rowFirst; k++)
+			{
+				matrix[i][j] += firstMatrix[i][k] * secondMatrix[k][j];   
+			}
+		}
+	}
 
-
+    return matrix;
 }
 
 
@@ -442,7 +547,7 @@ double ** transposef(double **m, int r, int c)
     return transpose;
 }
 
-void trapz(double **v, double filas, double columnas)
+double * trapz(double **v, double filas, double columnas)
 {
     double mat1[(int)filas][(int)columnas-1];
 	double mat2[(int)filas][(int)columnas-1];	
@@ -511,6 +616,8 @@ void trapz(double **v, double filas, double columnas)
 		printf("%lf - ",ret[i]);
 	}
 	printf("\n\n");
+
+    double * result = ret;
 }
 
 

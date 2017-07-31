@@ -161,9 +161,30 @@ def vonFoerster(dt, t, tau, nt, tmps, hmrs, pnu, fhnu, pdes, fhrates, pinput):
         print "ELSE PTTAUUUUUUUUUUUUUUUUUUUUUUUUUU"
     
     ints = dt*np.trapz(Pttau,axis=1);    # integrate in columns to normalize
+    print "ints \n\n"
+    print ints
+    print "\n\n (ints>tol)*ints \n\n"
+    print (ints>tol)*ints
+    print "\n\n fin (ints>tol)*ints \n\n"
+
     wts  = (ints>tol)*ints+(ints<=tol);  # calculate a  weighting factor; 
                                          # make it one if the integral is too  small (< tol)
+    print "wts \n\n"
+    print wts
+
+    print "pinput/np.transpose(wts) \n\n"
+    print pinput/np.transpose(wts)
+
+    print "Pttau \n\n"
+    print Pttau
+
     pout = dt*np.dot(pinput/np.transpose(wts), Pttau);      # output distribution, normalized by integral of P
+
+    print "pout \n\n"
+    print pout
+
+    print "dot \n\n"
+    print np.dot(pinput/np.transpose(wts), Pttau)
 
 # Graficaci�n 3D de la funci�n de probabilidad Pttau en funcion de t y de t*rates
     global idCorrida;
